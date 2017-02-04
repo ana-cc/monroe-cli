@@ -1,31 +1,21 @@
 import json
 import subprocess
+
+from haikunator import Haikunator
+
 #TODO experiments in the future (timestamped)
 
 class MonroeExperiment:
-    def __init__(self, name, script, nodecount, duration, nodetype):
-        if name is not None:
-            self.name = name
-        else:
-            self.name = ""
-        if script is not None:
-            self.script = script
-        else:
-            self.script = ""
-        if nodecount is not None:
-            self.nodecount = nodecount
-        else:
-            self.nodecount = 1
-        if duration is not None:
-            self.start = 0
-            self.stop = int(duration)
-        else:
-            self.start = 0
-            self.stop = 300
-        if nodetype is not None:
-            self.nodetype = 'type:%s' % nodetype
-        else:
-            self.nodetype = 'type:deployed'
+    def __init__(self, name=None, script="monroe/base",
+                 nodecount=1, duration=300, testing=False):
+        # Initialise basic options
+        self.name = name if name is not None else Haikunator().haikunate()
+        self.script = script
+        self.start = 0
+        self.stop = int(duration)
+        self.nodetype = 'type:testing' if testing else 'type:deployed'
+        
+        # Initialise advanced options
         self.countries = None
         self.nodes = None
         self.traffic = 1048576
