@@ -46,7 +46,7 @@ class MonroeExperiment:
         self.recurrence = rtype
         self.period = period
         self.until = until
-
+        
     def prepareJson(self):
         options = {}
         postrequest = {}
@@ -99,8 +99,7 @@ class _MonroeAuth:
     def __init__(self, cert, key):
         self.cert = cert
         self.key = key
-        self.endp = "https://www.monroe-system.eu/v1"
-        self.ends = "https://scheduler.monroe-system.eu/v1"
+        self.endp = "https://www.monroe-system.eu"
 
     def get_monroe(self, endpoint):
         url = self.endp + endpoint
@@ -114,7 +113,7 @@ class _MonroeAuth:
         return json.loads(response.communicate()[0].decode())
 
     def post_monroe(self, endpoint, postrequest):
-        url = self.ends + endpoint
+        url = self.endp + endpoint
         cmd = [
             'wget', '--certificate', self.cert, '--private-key', self.key,
             '--post-data=' + postrequest,
@@ -123,31 +122,41 @@ class _MonroeAuth:
         response = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return response.communicate()[0].decode()
+    def download_monroe(self, endpoint):
+        url = seld.endp + endpoint
+        cmd = [
+            'wget', '--certificate', self.cert, '--private-key',
+            self.key, url
+        ]
+        response = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+        return json.loads(response.communicate()[0].decode())
+        
     def get_auth(self):
-        endpoint = "/backend/auth"
+        endpoint = "/v1/backend/auth"
         return self.get_monroe(endpoint)
 
     def get_journals(self):
         res = self.get_auth()
-        endpoint = "/users/%s/journals" % res['user']['id']
+        endpoint = "/v1/users/%s/journals" % res['user']['id']
         return self.get_monroe(endpoint)
 
     def get_resources(self):
-        endpoint = "/resources/"
+        endpoint = "/v1/resources/"
         return self.get_monroe(endpoint)
 
     def get_experiments(self):
         res = self.get_auth()
-        endpoint = "/users/%s/experiments" % res['user']['id']
+        endpoint = "/v1/users/%s/experiments" % res['user']['id']
         return self.get_monroe(endpoint)
 
     def get_schedule(self, experimentid):
-        endpoint = "/experiments/%s/schedules" % experimentid
+        endpoint = "/v1/experiments/%s/schedules" % experimentid
         return self.get_monroe(endpoint)
 
     def submit_experiment(self, monroeExperiment):
-        endpoint = "/experiments"
+        endpoint = "/v1/experiments"
         req = monroeExperiment.prepareJson()
         a = self.post_monroe(endpoint, req)
         try:
@@ -156,6 +165,13 @@ class _MonroeAuth:
             return 'Nodes not available. Check the availability for your experiment using get_availability!'
 
     def get_availability(self, duration, nodecount, nodetype, start):
-        endpoint = "/schedules/find?duration=%s&nodecount=%s&nodetypes=%s&start=%s" % (
+        endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodetypes=%s&start=%s" % (
             str(duration), str(nodecount), nodetypes, start)
         return json.loads(self.get_monroe(endpoint))
+#TODO make it download in a sensible directory....
+    def get_result(self, experimentid):
+        endpoint = "/user/" + str(experimentid) + "/*"
+        return download_monroe(endpoint)
+
+
+
