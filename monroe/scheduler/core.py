@@ -1,10 +1,9 @@
 import time
+import datetime
 import json
 import subprocess
 from collections import namedtuple
 from haikunator import Haikunator
-
-#TODO experiments in the future (timestamped)
 
 class Experiment:
     ''' 
@@ -47,7 +46,28 @@ class Experiment:
         return self._data['summary']
     def status(self):
         return self._data['status']
- 
+    def duration(self, value=None):
+        if value == None:
+            return self._data['duration']
+        elif self._data['status'] == 'draft':
+            self._data['duration'] = value
+            self._data['stop'] = self._data['start'] + int(self._data['duration'])
+        else:
+            raise RuntimeError("Attempted to modify a non-draft experiment")
+    def start(self, value=None):
+        if value == None:
+            return int(self._data['start'])
+        elif self._data['status'] == 'draft':
+            try:
+            	self._data['start']= time.mktime(datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S").timetuple())
+            except:
+                raise RuntimeError("String format as y-m-dTh:m:s")
+            self._data['stop'] = self._data['start'] + int(self._data['duration'])
+        else:
+            raise RuntimeError("Attempted to modify a non-draft experiment")
+    def stop(self):
+        return int(self._data['stop'])
+    
     def countries(self, value=None):
         if value == None:
             return self._data['countries'] 
@@ -144,7 +164,7 @@ class Experiment:
             options['until'] = self._data['options']['until']
         if self._data['options']['sshkey'] is not None:
             if self._data['options']['recurrence'] is not None:
-                print("Error. Cannot deploy SSH tunnel with recurrent events!")
+                raise RuntimeError("Error. Cannot deploy SSH tunnel with recurrent events!")
             else:
                 options['ssh'] = json.dumps({
                     "server": "tunnel.monroe-system.eu",
@@ -169,14 +189,12 @@ class Scheduler:
     def __init__(self, cert, key):
         self.cert = cert
         self.key = key
-        self.endp = "https://www.monroe-system.eu"
-        self.ends = "https://scheduler.monroe-system.eu"
+        self.endp = "https://scheduler.monroe-system.eu"
+    # using wget as it's compiled against GNU TLS; anything using OpenSSL won't work due to MD5 hashes
+    # to be changed once fed4fire updates the experimenter certificates  
 
-    def get(self, endpoint, ends=False):
-        if ends == False:
-            url = self.endp + endpoint
-        else:
-            url = self.ends + endpoint
+    def get(self, endpoint):
+        url = self.endp + endpoint
         cmd = [
             'wget', '--certificate', self.cert, '--private-key',
             self.key, url, '-O', '-'
@@ -197,15 +215,24 @@ class Scheduler:
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return response.communicate()[0].decode()
 
-    def download(self, endpoint):
+    def download(self, endpoint, prefix):
         url = self.endp + endpoint
         cmd = [
-            'wget', '--certificate', self.cert, '--private-key',
+            'wget','-r','-nH','--cut-dirs=1','--no-parent','-P',str(prefix),'--certificate', self.cert, '--private-key',
             self.key, url
         ]
         response = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return response.communicate()[0].decode()
 
+    def delete (self, endpoint):
+        url = self.endp + endpoint
+        cmd = [
+            'wget','--method=DELETE','--certificate', self.cert, '--private-key',
+            self.key, url, '-O', '-'
+        ]
+        response = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return response.communicate()[0].decode()
         
     def auth(self):
@@ -229,7 +256,7 @@ class Scheduler:
          
     def schedules(self, experimentid):
         endpoint = "/v1/experiments/%s/schedules" % str(experimentid)
-        res = self.get(endpoint, ends=True)
+        res = self.get(endpoint)
         obj = {}
         for item in res['schedules'].keys():
             obj[item]= { "id": item, "nodeid" : res['schedules'][item]['nodeid'], "start": res['schedules'][item]['start'], "status" : res['schedules'][item]['status'], "stop" : res['schedules'][item]['stop'] }
@@ -258,6 +285,7 @@ class Scheduler:
         data['nodecount'] = nodecount
         data['start'] = 0
         data['stop'] = int(duration)
+        data['duration'] = int(duration)
         data['nodetype'] = 'type:testing' if testing else 'type:deployed'
         
         # Initialise advanced options
@@ -275,11 +303,16 @@ class Scheduler:
         data['options'] = options
         
         return Experiment(data)
+    
+    def delete_experiment(self, experimentid):
+        endpoint = "/v1/experiments/%s/schedules" % str(experimentid)
+        res = self.delete(endpoint)
+        return res
 
     def get_availability(self, experiment=None):
         if experiment is not None:
             if experiment._data['status'] == 'draft':
-                return self.availability(experiment._data['stop'], experiment._data['nodecount'], experiment._data['nodetype'])
+                return self.availability(experiment._data['duration'], experiment._data['nodecount'], experiment._data['nodetype'], int(experiment._data['start']))
             else:
                 raise RuntimeError("Can't check availability in the past")
         else:
@@ -290,12 +323,11 @@ class Scheduler:
             str(duration), str(nodecount), nodetype, start)
         return AvailabilityReport(self.get(endpoint)[0])
 
-    #TODO make it download in a sensible directory....
     def result(self, experimentid):
         schedules = self.schedules(experimentid)
         for item in schedules: 
-            endpoint = "/user/" + str(item.id()) + "/*"
-            self.download(endpoint)
+            endpoint = "/user/" + str(item.id()) + "/"
+            self.download(endpoint, experimentid)
 
 
 class Auth:
@@ -321,6 +353,9 @@ class Auth:
        return self._data['user']['role']
     def __repr__(self):
        return "<Auth id=%r name=%r >" % (self.id(), self.name())
+    def __str__(self):
+       return "<Authentication ID: %r, Name: %r, Storage Quota remaining: %r >" % (self.id(), self.name(), self.quota_storage())
+ 
  
 class AvailabilityReport:
     def __init__(self, data):
@@ -371,7 +406,11 @@ class JournalEntry:
     def timestamp(self):
        return self._data['timestamp']
     def __repr__(self):
-       return "<JournalEntry quota=%r reason=%r timestamp=%r>" % (self.quota(), self.reason(), self.timestamp())
+       return "<JournalEntry quota=%r reason=%r timestamp=%r>" % (self.value(), self.reason(), self.timestamp())
+    def __str__(self):
+       t = datetime.datetime.fromtimestamp(self.timestamp())
+       return "%r : Remaining %r is %r, after %r." % (t.strftime('%Y-%m-%d'), self.quota(), self.value(), self.reason())
+
 
 
 class Node:
