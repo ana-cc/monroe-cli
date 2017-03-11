@@ -29,11 +29,15 @@ class Experiment:
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
 
-    def nodetype(self, value=None):
+    def nodetype(self, testing=False):
         if value == None:
             return self._data['nodetype'] 
         elif self._data['status'] == 'draft':
-            self._data['nodetype'] = value
+            if testing == True:
+                self._data['nodetype'] = 'type:testing'
+            else:
+                self._data['nodetype'] = 'type:deployed'
+              
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
     def id(self):
@@ -80,7 +84,7 @@ class Experiment:
         if value == None:
             return self._data['options']['traffic'] 
         elif self._data['status'] == 'draft':
-            self._data['options']['traffic'] = value
+            self._data['options']['traffic'] = value *1024 *1024
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
 
@@ -88,7 +92,7 @@ class Experiment:
         if value == None:
             return self._data['options']['shared'] 
         elif self._data['status'] == 'draft':
-            self._data['options']['shared'] = value
+            self._data['options']['shared'] = valuei *1024 *1024
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
 
@@ -96,7 +100,7 @@ class Experiment:
         if value == None:
             return self._data['options']['storage'] 
         elif self._data['status'] == 'draft':
-            self._data['options']['storage'] = value
+            self._data['options']['storage'] = value * 1024 * 1024
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
 
@@ -183,6 +187,10 @@ class Experiment:
         postrequest['start'] = self._data['start']
         postrequest['stop'] = self._data['stop']
         return json.dumps(postrequest)
+    def __repr__(self):
+       return "<Experiment id=%r, script=%r, status=%r, summary=%r>" % (self.id(), self.script() ,self.status(), self.summary())
+    def __str__(self):
+       return "Experiment ID: %s Name: %s Script: %s Summary: %s" % (str(self.id()), self.name(), self.script(), self.summary())
 
 
 class Scheduler:
@@ -207,7 +215,7 @@ class Scheduler:
     def post(self, endpoint, postrequest):
         url = self.endp + endpoint
         cmd = [
-            'wget', '--certificate', self.cert, '--private-key', self.key,
+            'wget','--content-on-error', '--certificate', self.cert, '--private-key', self.key,
             '--post-data=' + postrequest,
             '--header=Content-Type:application/json', url, '-O', '-'
         ]
@@ -233,7 +241,10 @@ class Scheduler:
         ]
         response = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return response.communicate()[0].decode()
+        try:
+            return json.loads(response.communicate()[0].decode())
+        except:
+            raise RuntimeError("Could not perform action.")
         
     def auth(self):
         endpoint = "/v1/backend/auth"
@@ -251,7 +262,8 @@ class Scheduler:
         res = self.auth()
         endpoint = "/v1/users/%s/experiments" % res.id()
         obj = []
-        exp =  self.get(endpoint) 
+        exp =  self.get(endpoint)
+        exp=exp[-50:] 
         return [Experiment(e) for e in exp]
          
     def schedules(self, experimentid):
@@ -269,7 +281,7 @@ class Scheduler:
         try:
             return SubmissionReport(json.loads(a.split("--")[0]))
         except:
-            return 'Nodes not available. Check the availability for your experiment using availability!'
+            return "Something went wrong. Check the experiment availability."
 
     def new_experiment(self, name=None, script="monroe/base",
                  nodecount=1, duration=300, testing=False):
@@ -295,7 +307,7 @@ class Scheduler:
         options['traffic'] = 1048576
         options['resultsQuota'] = 0
         options['shared'] = 0
-        options['storage'] = 128
+        options['storage'] = 134217728
         options['sshkey'] = None
         options['recurrence'] = None
         options['period'] = None
@@ -354,7 +366,7 @@ class Auth:
     def __repr__(self):
        return "<Auth id=%r name=%r >" % (self.id(), self.name())
     def __str__(self):
-       return "<Authentication ID: %r, Name: %r, Storage Quota remaining: %r >" % (self.id(), self.name(), self.quota_storage())
+       return "Authentication ID: %s, Name: %s, Storage Quota remaining: %s bytes" % (str(self.id()), str(self.name()), str(self.quota_storage()))
  
  
 class AvailabilityReport:
@@ -376,6 +388,12 @@ class AvailabilityReport:
        return self._data['nodetypes'] == 'type:testing'
     def __repr__(self):
        return "<AvailabilityReport start=%r testing=%r max_nodecount=%r max_stop=%r >" % (self.start(), self.testing(), self.max_nodecount(), self.max_stop()) 
+    def __str__(self):
+       av = "Available slot starting at %s" % str(datetime.datetime.fromtimestamp(self.start()))
+       fi = "Finishing at %s" % str(datetime.datetime.fromtimestamp(self.stop()))
+       m = "The experiment could use up to %s nodes" % str(self.max_nodecount())
+       de = "The experiment may be delayed or the slot extended until %s" % str(datetime.datetime.fromtimestamp(self.max_stop()))
+       return "%s\n%s\n%s\n%s" % (av, fi, m, de) 
 
 class SubmissionReport:
     def __init__(self, data):
@@ -390,6 +408,8 @@ class SubmissionReport:
        return self._data['message']
     def __repr__(self):
        return "<SubmissionReport message=%r >" % self.message()
+    def __str__(self):
+       return "SubmissionReport: %s >" % self.message()
 
 
 class JournalEntry:
@@ -409,7 +429,12 @@ class JournalEntry:
        return "<JournalEntry quota=%r reason=%r timestamp=%r>" % (self.value(), self.reason(), self.timestamp())
     def __str__(self):
        t = datetime.datetime.fromtimestamp(self.timestamp())
-       return "%r : Remaining %r is %r, after %r." % (t.strftime('%Y-%m-%d'), self.quota(), self.value(), self.reason())
+       if 'time' in self.quota():
+           return "%s : Remaining time is %s hours." % (t.strftime('%Y-%m-%d'), str("%.2f" % (self.value()/3600)))
+       if 'storage' in self.quota():
+           return "%s : Remaining storage quota is %s GB." % (t.strftime('%Y-%m-%d'), str("%.2f" % (self.value()/(1024*1024*1024))))
+       if 'data' in self.quota():
+           return "%s : Remaining data quota is %s GB." % (t.strftime('%Y-%m-%d'), str("%.2f" % (self.value()/(1024*1024*1024))))
 
 
 
@@ -437,6 +462,8 @@ class Node:
            return 'undefined'
     def __repr__(self):
         return "<Node id=%r status=%r type=%r >" % (self.id(), self.status(), self.nodetype())
+    def __str__(self):
+        return "Node ID=%s Status=%s Type=%s >" % (str(self.id()), self.status(), self.nodetype())
 
 class Schedule:
     def __init__(self, data):
@@ -453,3 +480,5 @@ class Schedule:
        return self._data['status']
     def __repr__(self):
        return "<Schedule id=%r nodeid=%r >"  % (self.id(), self.nodeid())
+    def __str__(self):
+       return "Schedule ID=%s Node ID=%s >"  % (str(self.id()), str(self.nodeid()))
