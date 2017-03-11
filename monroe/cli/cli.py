@@ -5,27 +5,33 @@ import subprocess
 import argparse
 import getpass
 import re
+import socket
 from monroe.core import Scheduler, Experiment
 from OpenSSL.crypto import load_pkcs12, FILETYPE_PEM, FILETYPE_ASN1, dump_certificate, dump_privatekey
 import datetime
 import json
+from Crypto.PublicKey import RSA
 
 mnr_dir = os.path.expanduser('~/.monroe/')
 mnr_key = str(mnr_dir)+'mnrKey.pem'
 mnr_crt = str(mnr_dir)+'mnrCrt.pem'
-
+sshkey = str(mnr_dir) + 'mnr_rsa.pub'
+sshkey_priv = str(mnr_dir) + 'mnr_rsa'
 
 def create(args):
-    
     scheduler = Scheduler(mnr_crt, mnr_key)
     exp = scheduler.new_experiment(args.name, args.script, args.nodecount, args.duration, testing=args.testing)
-    if args.sshkey:
-        if os.path.isfile(args.sshkey):
-           with open(args.sshkey, 'r') as f:
+    if args.ssh:
+        if os.path.isfile(sshkey) and os.path.isfile(sshkey_priv):
+           with open(sshkey, 'r') as f:
                key = f.read()
            exp.sshkey(key)
         else:
-           print ("File does not exist!") 
+           inputv = input("Default ssh key not found. Generate one now? [y/n]")
+           if inputv in ['y', 'Y','yes', 'Yes']:
+               gen_ssh_mnr()
+           else:
+               sys.exit(1)
     if args.traffic:
         exp.traffic(args.traffic)
     if args.logfile:
@@ -54,10 +60,12 @@ def create(args):
         if 'Could not allocate' in a.message():
             sys.exit(1)
         expid = int(re.search(r'\d+', str(a)).group())
-        if args.sshkey:
-            print ('To connect to your experiment container(s):\n')
-            for item in scheduler.schedules(expid):
-                print("ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i your_private_key -p " + str(30000 + item.nodeid()) + " root@tunnel.monroe-system.eu")
+        if args.ssh:
+            print ('Connecting to your experiment container:\n')
+            item = scheduler.schedules(expid)[0]
+            port = 30000 + item.nodeid() 
+            con  = check_server('tunnel.monroe-system.eu', port)
+            #print("ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i " + sshkey_priv + " -p " + + " root@tunnel.monroe-system.eu")
 
         
 def date_t(value):
@@ -70,6 +78,36 @@ def date_t(value):
         print("Date/time outside the acceptable ranges")
         sys.exit(1)
     return value
+
+def gen_ssh_mnr():
+    secret = getpass.getpass("Create export passphrase for the new key:")
+    key =  RSA.generate(2048)
+    with open(sshkey, 'wb') as f:
+        f.write(key.publickey().exportKey())
+        print ("Public key written to ~/.monroe/mnr_rsa.pub.")
+    with open(sshkey_priv, 'wb') as f:
+        f.write(key.exportKey(passphrase = secret))
+        print ("Private key written to ~/.monroe/mnr_rsa.")
+    print ("These are the default keys used by the cli.")
+
+def check_server(address, port):
+    s = socket.socket()
+    dead = False
+    start = time.time()
+    while dead == False:
+        print ("Trying node " + str(port-30000) +" on port " + str(port)+ "...")
+        try:
+            s.connect((address, port))
+            print ("Connection succeeded")
+            return True
+        except socket.error as e:
+            #print (e)
+            time.sleep(10)
+        if (time.time()-start) > 180:
+            dead = True
+            print ("Could not contact the node.")
+    return False    
+ 
 
 def handle_args(argv):
     parser = argparse.ArgumentParser(prog='monroe-cli', description='Monroe Cli')
@@ -96,7 +134,7 @@ def handle_args(argv):
     parser_exp.add_argument('--traffic', type=int, default = 1, help = 'Sets the active data quota in MB, default is 1')
     parser_exp.add_argument('--storage', type=int, default = 128, help = 'Sets the deployment storage quota in MB, default is 128')
     parser_exp.add_argument('--logfile', type=int, default = 0, help = 'Sets the log file quota in MB, default is 0')
-    parser_exp.add_argument('--sshkey', help = 'Path to your ssh key for remoting into nodes')
+    parser_exp.add_argument('--ssh',action='store_true', help = 'Path to your ssh key for remoting into nodes')
     parser_exp.add_argument('--jsonstr', nargs='?', help = 'Additional options string. It will automatically be converted to JSON.')
     parser_exp.add_argument('--countries', nargs='?', help = 'Countries: pick one or several from Norway, Sweden, Spain, Italy')
     parser_exp.add_argument('--submit', action='store_true', help = 'Submit the experiment')
@@ -116,7 +154,7 @@ def handle_args(argv):
             try:
                with open(args.setup, 'rb') as f:
                   cert = f.read()
-               passphrase = getpass.getpass()   
+               passphrase = getpass.getpass("Enter passphrase:")   
                c = load_pkcs12(cert, passphrase)
                certificate = c.get_certificate()
                private_key = c.get_privatekey()
