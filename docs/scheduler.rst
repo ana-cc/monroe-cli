@@ -1,6 +1,6 @@
 scheduler
 ========
 
-.. automodule:: monroe.scheduler.core
+.. automodule:: monroe.core
    :members:
    :undoc-members:
