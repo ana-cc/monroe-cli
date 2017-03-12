@@ -18,6 +18,9 @@ mnr_crt = str(mnr_dir)+'mnrCrt.pem'
 sshkey = str(mnr_dir) + 'mnr_rsa.pub'
 sshkey_priv = str(mnr_dir) + 'mnr_rsa'
 
+import logging
+logging.getLogger().setLevel(logging.DEBUG)
+
 def create(args):
     scheduler = Scheduler(mnr_crt, mnr_key)
     exp = scheduler.new_experiment(args.name, args.script, args.nodecount, args.duration, testing=args.testing)
@@ -114,14 +117,11 @@ def handle_args(argv):
     parser.set_defaults(func=None)
 
     parser.add_argument('--setup', metavar='<certificate>', type=str, help = 'Specifies MONROE user certificate to use for accessing the scheduler')
-    parser.add_argument('--auth', action='store_true', help = 'Displays MONROE user details')
-    parser.add_argument('--quota', action='store_true', help = 'Displays MONROE quota details')
-    parser.add_argument('--experiments', metavar='<number>', type=int, nargs='?', const=10, help = 'Displays MONROE user details')
     parser.add_argument('--delete', metavar='<experiment-id>', help = 'Deletes an experiment')
     parser.add_argument('--result', metavar='<experiment-id>', help = 'Downloads the results for an experiment')
     parser.add_argument('--submit', metavar='<input-file>', help='Submits an experiment from a json file')
 
-    subparsers = parser.add_subparsers(title="Experiment", description="The following commands can be used to create and submit experiments", metavar='COMMAND', help='Description')    
+    subparsers = parser.add_subparsers(title="Experiment", description="The following commands can be used to create and submit experiments", metavar='Command', help='Description')    
     parser_exp = subparsers.add_parser('create', help='Creates an experiment')
     parser_exp.set_defaults(func=create)
 
@@ -141,6 +141,16 @@ def handle_args(argv):
     #parser_exp.add_argument('--save', action='store_true', help = 'Sets the experiment name')
     parser_exp.add_argument('--availability', action='store_true', help = 'Check experiment availability')
 
+    parser_whoami = subparsers.add_parser('whoami', help='Displays MONROE user details')
+    parser_whoami.set_defaults(func=whoami)
+
+    parser_quota = subparsers.add_parser('quota', help='Displays MONROE quota details')
+    parser_quota.set_defaults(func=quota)
+
+    parser_experiments = subparsers.add_parser('experiments', help='Display recent experiments')
+    parser_experiments.add_argument('--max', metavar='<number>', type=int, default=10, help='Maximum number of experiments to display')
+    parser_experiments.set_defaults(func=experiments)
+
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
@@ -154,7 +164,7 @@ def handle_args(argv):
             try:
                with open(args.setup, 'rb') as f:
                   cert = f.read()
-               passphrase = getpass.getpass("Enter passphrase:")   
+               passphrase = getpass.getpass("Enter passphrase:")
                c = load_pkcs12(cert, passphrase)
                certificate = c.get_certificate()
                private_key = c.get_privatekey()
@@ -185,17 +195,6 @@ def handle_args(argv):
         print ("Something went wrong.\nTry running monroe-cli --setup <certificate>\nto refresh your certificate and check the scheduler is running\nand can be accessed from your local network.")
         sys.exit(1)
 
-    if args.auth:
-       print (scheduler.auth())
-      
-    if args.experiments:
-       for i in scheduler.experiments()[-args.experiments:]:
-           print(i)
- 
-    if args.quota:
-       for i in scheduler.journals()[-3:]:
-           print(i)
- 
     if args.delete:
        try:
            a = scheduler.delete_experiment(args.delete)
@@ -207,7 +206,19 @@ def handle_args(argv):
     if args.result:
        scheduler.result(args.result)
       
+def whoami(args):
+    scheduler = Scheduler(mnr_crt, mnr_key)
+    print(scheduler.auth())
 
+def quota(args):
+    scheduler = Scheduler(mnr_crt, mnr_key)
+    for i in scheduler.journals()[-3:]:
+       print(i)
+
+def experiments(args):
+    scheduler = Scheduler(mnr_crt, mnr_key)
+    for i in scheduler.experiments()[-args.max:]:
+       print(i)
  
 if __name__ == "__main__":
     handle_args(sys.argv)
