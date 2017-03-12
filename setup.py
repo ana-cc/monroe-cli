@@ -1,19 +1,15 @@
-"""A setuptools based setup module.
-
-See:
-https://packaging.python.org/en/latest/distributing.html
-https://github.com/pypa/sampleproject
-"""
-
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
 
+with open('VERSION') as version_file:
+    VERSION = version_file.read().strip().decode('utf-8')
+
 setup(
     name='monroe-lib',
-   version='1.0.0',
+    version=VERSION,
 
     description='Python library for interacting with the MONROE scheduler',
     long_description='Library for interacting with the MONROE scheduler',

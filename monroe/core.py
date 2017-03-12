@@ -3,7 +3,13 @@ import datetime
 import json
 import subprocess
 from collections import namedtuple
-from haikunator import Haikunator
+
+try:
+    from haikunator import Haikunator
+except ImportError:
+    class Haikunator:
+        def haikunate():
+            return "ididntinstallhaikunator"
 
 class Experiment:
     ''' 
