@@ -86,10 +86,14 @@ def gen_ssh_mnr():
     secret = getpass.getpass("Create export passphrase for the new key:")
     key =  RSA.generate(2048)
     with open(sshkey, 'wb') as f:
-        f.write(key.publickey().exportKey())
+        f.write(key.publickey().exportKey(format='OpenSSH'))
         print ("Public key written to ~/.monroe/mnr_rsa.pub.")
     with open(sshkey_priv, 'wb') as f:
-        f.write(key.exportKey(passphrase = secret))
+        if secret != "":
+            f.write(key.exportKey(passphrase = secret))
+        else:
+            f.write(key.exportKey())
+        
         print ("Private key written to ~/.monroe/mnr_rsa.")
     print ("These are the default keys used by the cli.")
 
@@ -115,12 +119,6 @@ def check_server(address, port):
 def handle_args(argv):
     parser = argparse.ArgumentParser(prog='monroe-cli', description='Monroe Cli')
     parser.set_defaults(func=None)
-
-    parser.add_argument('--setup', metavar='<certificate>', type=str, help = 'Specifies MONROE user certificate to use for accessing the scheduler')
-    parser.add_argument('--delete', metavar='<experiment-id>', help = 'Deletes an experiment')
-    parser.add_argument('--result', metavar='<experiment-id>', help = 'Downloads the results for an experiment')
-    parser.add_argument('--submit', metavar='<input-file>', help='Submits an experiment from a json file')
-
     subparsers = parser.add_subparsers(title="Experiment", description="The following commands can be used to create and submit experiments", metavar='Command', help='Description')    
     parser_exp = subparsers.add_parser('create', help='Creates an experiment')
     parser_exp.set_defaults(func=create)
@@ -151,18 +149,48 @@ def handle_args(argv):
     parser_experiments.add_argument('--max', metavar='<number>', type=int, default=10, help='Maximum number of experiments to display')
     parser_experiments.set_defaults(func=experiments)
 
+    parser_setup = subparsers.add_parser('setup', help = 'Specifies MONROE user certificate to use for accessing the scheduler')
+    parser_setup.set_defaults(func=setup)
+    parser_setup.add_argument('--cert', metavar='<filename>', help='Location of the certificate file')
+
+    parser_delete = subparsers.add_parser('delete', help = 'Deletes an experiment')
+    parser_delete.set_defaults(func=delete)
+    parser_delete.add_argument('--exp', metavar='<exp-id>', type=int, help='ID of the experiment you want to delete')
+
+    parser_results = subparsers.add_parser('results', help = 'Downloads the results for an experiment')
+    parser_results.set_defaults(func=results)
+    parser_results.add_argument('--exp', metavar='<exp-id>', type=int, help='ID of the experiment you want to download')
+
+
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
 
     args = parser.parse_args(argv[1:])
-    if args.func:
-        args.func(args)
 
-    if args.setup:
-        if os.path.isfile(args.setup):
+    if args.func != setup:
+ 
+        if not os.path.isfile(mnr_key) or not os.path.isfile(mnr_crt):
+            print ("Please run monroe-cli setup <certificate> to be able to submit experiments and retrieve results.")
+            sys.exit(1)
+        try:
+            scheduler = Scheduler(mnr_crt, mnr_key)
+            auth = scheduler.auth()
+        except:
+            print ("Something went wrong.\nTry running monroe-cli --setup <certificate>\nto refresh your certificate and check the scheduler is running\nand can be accessed from your local network.")
+            sys.exit(1)
+        args.func(args)
+    else:
+        if len(sys.argv) == 2:
+            parser_setup.print_help()
+            args.func(args)
+
+def setup(args):
+
+    if args.cert:
+        if os.path.isfile(args.cert):
             try:
-               with open(args.setup, 'rb') as f:
+               with open(args.cert, 'rb') as f:
                   cert = f.read()
                passphrase = getpass.getpass("Enter passphrase:")
                c = load_pkcs12(cert, passphrase)
@@ -184,27 +212,27 @@ def handle_args(argv):
         else: 
             print("File not found!")
             sys.exit(1)
-        
-    if not os.path.isfile(mnr_key) or not os.path.isfile(mnr_crt):
-        print ("Please run monroe-cli --setup <certificate> to be able to submit experiments and retrieve results.")
-        sys.exit(1)
-    try:
+    else:
+        print("Please specify a p12 or pkcs12 certificate to use.")
+            
+def delete(args):
+    if args.exp:
         scheduler = Scheduler(mnr_crt, mnr_key)
-        auth = scheduler.auth()
-    except:
-        print ("Something went wrong.\nTry running monroe-cli --setup <certificate>\nto refresh your certificate and check the scheduler is running\nand can be accessed from your local network.")
-        sys.exit(1)
-
-    if args.delete:
-       try:
-           a = scheduler.delete_experiment(args.delete)
+        try:
+           a = scheduler.delete_experiment(args.exp)
            print (a['message'])
-       except Exception as err:
+        except Exception as err:
            print("ERROR: %s" % str(err))
            sys.exit(1)
-
-    if args.result:
-       scheduler.result(args.result)
+    else:
+        print("Please specify the ID of the experiment you want to delete.")
+    
+def results(args):
+    if args.exp:
+        scheduler = Scheduler(mnr_crt, mnr_key)
+        scheduler.result(args.exp)
+    else:
+        print("Please specify an experiment ID to get results for.")
       
 def whoami(args):
     scheduler = Scheduler(mnr_crt, mnr_key)
