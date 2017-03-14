@@ -41,8 +41,6 @@ def create(args):
         exp.shared(args.logfile)
     if args.storage:
         exp.storage(args.storage)
-    if args.availability:
-        print (scheduler.get_availability(exp))
     if args.jsonstr:
         exp.jsonstr(args.jsonstr)
     if args.countries:
@@ -57,6 +55,25 @@ def create(args):
             c.append('es')
         exp.countries(c)
 
+    if args.recurrence:
+        try:
+            period = int(args.recurrence[0])
+        except:
+            sys.exit(1)
+            print ('Argument must be an integer')
+        until = args.recurrence[1]
+        if period<3600:
+            print ("The minimum period for recurring experiments must be at least 3600")
+            sys.exit(1)
+        if (period%3600) != 0:
+            print ("Recurrence period must be a multiple of 3600")
+            sys.exit(1)
+        try:
+            date_t(until)
+        except Exception as err:
+            print (err)
+            sys.exit(1)
+
     if args.submit:
         a = scheduler.submit_experiment(exp)
         print(a.message())
@@ -68,9 +85,13 @@ def create(args):
             item = scheduler.schedules(expid)[0]
             port = 30000 + item.nodeid() 
             con  = check_server('tunnel.monroe-system.eu', port)
-            #print("ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i " + sshkey_priv + " -p " + + " root@tunnel.monroe-system.eu")
+            if con:
+                args = [ 'ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i',  sshkey_priv, ' -p', 'root@tunnel.monroe-system.eu' ]
+                subprocess.Popen(cmd)
 
-        
+    if args.availability:
+        print (scheduler.get_availability(exp))
+
 def date_t(value):
     try:
         t = time.mktime(datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S").timetuple())
@@ -93,8 +114,8 @@ def gen_ssh_mnr():
             f.write(key.exportKey(passphrase = secret))
         else:
             f.write(key.exportKey())
-        
         print ("Private key written to ~/.monroe/mnr_rsa.")
+    os.chmod(sshkey_priv, 0o600)        
     print ("These are the default keys used by the cli.")
 
 def check_server(address, port):
@@ -135,6 +156,7 @@ def handle_args(argv):
     parser_exp.add_argument('--ssh',action='store_true', help = 'Path to your ssh key for remoting into nodes')
     parser_exp.add_argument('--jsonstr', nargs='?', help = 'Additional options string. It will automatically be converted to JSON.')
     parser_exp.add_argument('--countries', nargs='?', help = 'Countries: pick one or several from Norway, Sweden, Spain, Italy')
+    parser_exp.add_argument('--recurrence', nargs=2, metavar = '<period, finish time>', help = 'Defines recurrence parameters')
     parser_exp.add_argument('--submit', action='store_true', help = 'Submit the experiment')
     #parser_exp.add_argument('--save', action='store_true', help = 'Sets the experiment name')
     parser_exp.add_argument('--availability', action='store_true', help = 'Check experiment availability')
