@@ -5,7 +5,7 @@ from codecs import open
 from os import path
 
 with open('VERSION') as version_file:
-    VERSION = version_file.read().strip().decode('utf-8')
+    VERSION = version_file.read().strip()
 
 setup(
     name='monroe-lib',

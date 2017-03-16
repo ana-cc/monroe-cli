@@ -12,6 +12,8 @@ import datetime
 import json
 from Crypto.PublicKey import RSA
 
+# Paths for monroe certificates and keys
+
 mnr_dir = os.path.expanduser('~/.monroe/')
 mnr_key = str(mnr_dir)+'mnrKey.pem'
 mnr_crt = str(mnr_dir)+'mnrCrt.pem'
@@ -22,6 +24,10 @@ import logging
 logging.getLogger().setLevel(logging.DEBUG)
 
 def create(args):
+    '''
+    Function that creates an experiment based on the parameters given 
+    to the argument parser
+    '''
     scheduler = Scheduler(mnr_crt, mnr_key)
     exp = scheduler.new_experiment(args.name, args.script, args.nodecount, args.duration, testing=args.testing)
     if args.ssh:
@@ -36,11 +42,11 @@ def create(args):
            else:
                sys.exit(1)
     if args.traffic:
-        exp.traffic(args.traffic)
+        exp.traffic(args.traffic *1024* 1024)
     if args.logfile:
-        exp.shared(args.logfile)
+        exp.shared(args.logfile*1024*1024)
     if args.storage:
-        exp.storage(args.storage)
+        exp.storage(args.storage*1024*1024)
     if args.jsonstr:
         exp.jsonstr(args.jsonstr)
     if args.countries:
@@ -84,15 +90,16 @@ def create(args):
             print ('Connecting to your experiment container:\n')
             item = scheduler.schedules(expid)[0]
             port = 30000 + item.nodeid() 
-            con  = check_server('tunnel.monroe-system.eu', port)
+            con  = check_server('193.10.227.35', port)
             if con:
-                args = [ 'ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i',  sshkey_priv, ' -p', 'root@tunnel.monroe-system.eu' ]
-                subprocess.Popen(cmd)
+                cmd = " ".join(['ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null', '-i',  sshkey_priv, '-p', str(port), 'root@tunnel.monroe-system.eu'])
+                os.system(cmd)
 
     if args.availability:
         print (scheduler.get_availability(exp))
 
 def date_t(value):
+    '''Function which checks a given string can be converted to a date within accepted scheduler ranges'''
     try:
         t = time.mktime(datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S").timetuple())
     except:
@@ -104,6 +111,10 @@ def date_t(value):
     return value
 
 def gen_ssh_mnr():
+    '''
+    Function that generates and stores an RSA 2048 
+    key for node login in OpenSSH format
+    ''' 
     secret = getpass.getpass("Create export passphrase for the new key:")
     key =  RSA.generate(2048)
     with open(sshkey, 'wb') as f:
@@ -119,25 +130,41 @@ def gen_ssh_mnr():
     print ("These are the default keys used by the cli.")
 
 def check_server(address, port):
+    '''
+    Function that checks the reachability of a server
+    on a specific port
+    '''
+    def spinning_cursor():
+        while True:
+            for cursor in '|/-\\':
+                yield cursor
+
+    print("Trying node " + str(port-30000) +" on port " + str(port)+ "...")
+    spinner = spinning_cursor()
     s = socket.socket()
     dead = False
     start = time.time()
     while dead == False:
-        print ("Trying node " + str(port-30000) +" on port " + str(port)+ "...")
         try:
+            sys.stdout.write(next(spinner))
+            sys.stdout.flush()
+            sys.stdout.write('\b')
             s.connect((address, port))
             print ("Connection succeeded")
             return True
         except socket.error as e:
-            #print (e)
-            time.sleep(10)
+            time.sleep(1)
         if (time.time()-start) > 180:
             dead = True
             print ("Could not contact the node.")
     return False    
  
-
 def handle_args(argv):
+    '''
+    Main argument handler, registers subparsers
+    for the subcommands 'create', 'whoami', 'experiments',
+    'quota', 'setup', 'delete' and 'results'
+    '''
     parser = argparse.ArgumentParser(prog='monroe-cli', description='Monroe Cli')
     parser.set_defaults(func=None)
     subparsers = parser.add_subparsers(title="Experiment", description="The following commands can be used to create and submit experiments", metavar='Command', help='Description')    
@@ -189,9 +216,8 @@ def handle_args(argv):
         sys.exit(1)
 
     args = parser.parse_args(argv[1:])
-
+    # Validation of cert and key required before executing commands on the scheduler
     if args.func != setup:
- 
         if not os.path.isfile(mnr_key) or not os.path.isfile(mnr_crt):
             print ("Please run monroe-cli setup <certificate> to be able to submit experiments and retrieve results.")
             sys.exit(1)
@@ -203,12 +229,13 @@ def handle_args(argv):
             sys.exit(1)
         args.func(args)
     else:
-        if len(sys.argv) == 2:
-            parser_setup.print_help()
-            args.func(args)
+        args.func(args)
 
 def setup(args):
-
+    '''
+    Function that sets up the files necessary to the
+    interaction with the scheduler
+    ''' 
     if args.cert:
         if os.path.isfile(args.cert):
             try:
@@ -238,6 +265,10 @@ def setup(args):
         print("Please specify a p12 or pkcs12 certificate to use.")
             
 def delete(args):
+    '''
+    Function that deletes experiments based on the 
+    experiment id passed to the parser
+    '''
     if args.exp:
         scheduler = Scheduler(mnr_crt, mnr_key)
         try:
@@ -250,6 +281,10 @@ def delete(args):
         print("Please specify the ID of the experiment you want to delete.")
     
 def results(args):
+    '''
+    Function that downloads experiment results based on the 
+    experiment id passed to the parser
+    '''
     if args.exp:
         scheduler = Scheduler(mnr_crt, mnr_key)
         scheduler.result(args.exp)
@@ -257,15 +292,24 @@ def results(args):
         print("Please specify an experiment ID to get results for.")
       
 def whoami(args):
+    '''
+    Function that prints user identity
+    '''
     scheduler = Scheduler(mnr_crt, mnr_key)
     print(scheduler.auth())
 
 def quota(args):
+    '''
+    Function that prints user quota
+    '''
     scheduler = Scheduler(mnr_crt, mnr_key)
     for i in scheduler.journals()[-3:]:
        print(i)
 
 def experiments(args):
+    '''
+    Function that prints with user experiments
+    '''
     scheduler = Scheduler(mnr_crt, mnr_key)
     for i in scheduler.experiments()[-args.max:]:
        print(i)
