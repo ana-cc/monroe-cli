@@ -1,6 +1,4 @@
-# Always prefer setuptools over distutils
 from setuptools import setup, find_packages
-# To use a consistent encoding
 from codecs import open
 from os import path
 
@@ -34,9 +32,9 @@ setup(
 
     packages=find_packages(exclude=['docs', 'tests']),
 
-    # Alternatively, if you want to distribute just a my_module.py, uncomment
-    # this:
-    #py_modules=["monroe"],
-    #install_requires=['peppercorn'],
-
+    entry_points={
+    'console_scripts': [
+        'monroe=monroe.cli:main',
+    ],
+},
 )

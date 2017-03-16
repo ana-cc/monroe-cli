@@ -420,6 +420,8 @@ def experiments(args):
     for i in scheduler.experiments()[-args.max:]:
         print(i)
 
+def main():
+    handle_args(sys.argv)
 
 if __name__ == "__main__":
-    handle_args(sys.argv)
+    main()
