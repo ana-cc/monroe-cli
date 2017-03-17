@@ -196,7 +196,7 @@ class Experiment:
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
 
-    def nodes(self, value=None):
+    def nodecount(self, value=None):
         '''Sets the number of nodes for an experiment to ``value``, otherwise returns the number of nodes set for the experiment when called with no argument.
 
         :param value: Number of nodes
@@ -204,11 +204,26 @@ class Experiment:
         :returns: int 
         '''
         if value == None:
+            return self._data['nodecount']
+        elif self._data['status'] == 'draft':
+            self._data['nodecount'] = value
+        else:
+            raise RuntimeError("Attempted to modify a non-draft experiment")
+
+    def nodes(self, value=None):
+        '''Sets specific nodes for an experiment to ``value`` otherwise returns the nodes set for the experiment when called with no argument.
+
+        :param value: List of nodes
+        :type value: list
+        :returns: list 
+        '''
+        if value == None:
             return self._data['options']['nodes']
         elif self._data['status'] == 'draft':
             self._data['options']['nodes'] = value
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
+
 
     def jsonstr(self, value=None):
         '''Sets the additional option string for an experiment to ``value``, otherwise returns the additional option string set for the experiment when called with no argument.
@@ -300,8 +315,8 @@ class Experiment:
                     "server.user": "tunnel",
                     "client.public": self._data['options']['sshkey']
                 }
-        if self._data['options']['nodes'] is not None:
-            options['nodes'] = self._data['options']['nodes']
+        if len(self._data['options']['nodes']) > 0:
+            options['nodes'] = ', '.join([str(i) for i in self._data['options']['nodes']])
 
         postrequest['name'] = self._data['name']
         postrequest['nodecount'] = self._data['nodecount']
@@ -343,7 +358,7 @@ class Scheduler:
         '''
         url = self.endp + endpoint
         cmd = [
-            'wget', '--certificate', self.cert, '--private-key', self.key, url,
+            'wget','--content-on-error', '--certificate', self.cert, '--private-key', self.key, url,
             '-O', '-'
         ]
         response = subprocess.Popen(
@@ -479,7 +494,7 @@ class Scheduler:
         # Initialise advanced options
         data['jsonstr'] = None
         data['countries'] = []
-        options['nodes'] = None
+        options['nodes'] = []
         options['traffic'] = 1048576
         options['resultsQuota'] = 0
         options['shared'] = 0
@@ -505,6 +520,8 @@ class Scheduler:
                 return self.availability(experiment._data['duration'],
                                          experiment._data['nodecount'],
                                          experiment._data['nodetype'],
+                                         experiment._data['countries'],
+                                         experiment._data['options']['nodes'],
                                          int(experiment._data['start']))
             else:
                 raise RuntimeError("Can't check availability in the past")
@@ -515,11 +532,32 @@ class Scheduler:
                      duration=300,
                      nodecount=1,
                      nodetype='type:testing',
+                     countries=[],
+                     nodes=[],
                      start=0):
         '''Produces and submits HTTP query string for given nodecount, duration and nodetype and returns an AvailabilityReport based on the returned response.'''
-        endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodetypes=%s&start=%s" % (
-            str(duration), str(nodecount), nodetype, start)
-        return AvailabilityReport(self.get(endpoint)[0])
+        if len(countries) > 0:
+            l = len(countries)
+            c = 1
+            ret = ""
+            for item in countries:
+                ret += "country:" + item
+                if c < l:
+                    ret += "|"
+                c += 1
+            nodetype = ret +', '+ nodetype
+        if len(nodes) > 0: 
+            nodes = ','.join([str(i) for i in nodes])
+            endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodes=%s&nodetypes=%s&start=%s" % (
+                str(duration), str(nodecount),nodes, nodetype, start)
+        
+        else:         
+            endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodetypes=%s&start=%s" % (
+                str(duration), str(nodecount), nodetype, start)
+        try:
+            return AvailabilityReport(self.get(endpoint)[0])
+        except:
+            return self.get(endpoint)['message']
 
     def result(self, experimentid):
         '''Downloads the results for a given experiment ID in the current folder.'''

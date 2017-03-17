@@ -67,7 +67,10 @@ def create(args):
         if 'Spain' in args.countries:
             c.append('es')
         exp.countries(c)
-
+    if args.nodes:
+       n = []
+       n.append(args.nodes)
+       exp.nodes(n)
     if args.recurrence:
         try:
             period = int(args.recurrence[0])
@@ -248,6 +251,11 @@ def handle_args(argv):
         '--countries',
         nargs='?',
         help='Countries: pick one or several from Norway, Sweden, Spain, Italy')
+    parser_exp.add_argument(
+        '--nodes',
+        nargs='+',
+        type=int,
+        help='Specific node IDs')
     parser_exp.add_argument(
         '--recurrence',
         nargs=2,
