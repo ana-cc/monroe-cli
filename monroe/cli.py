@@ -1,3 +1,4 @@
+import ast
 import sys
 import os
 import time
@@ -6,12 +7,16 @@ import argparse
 import getpass
 import re
 import socket
-from monroe.core import Scheduler, Experiment
-from OpenSSL.crypto import load_pkcs12, FILETYPE_PEM, FILETYPE_ASN1, dump_certificate, dump_privatekey
 import datetime
 import json
-import ast
+
+from straight.plugin import load
+
+from OpenSSL.crypto import load_pkcs12, FILETYPE_PEM, FILETYPE_ASN1, dump_certificate, dump_privatekey
 from Crypto.PublicKey import RSA
+
+from monroe.core import Scheduler, Experiment
+
 # Paths for monroe certificates and keys
 
 mnr_dir = os.path.expanduser('~/.monroe/')
@@ -23,6 +28,10 @@ sshkey_priv = str(mnr_dir) + 'mnr_rsa'
 import logging
 logging.getLogger().setLevel(logging.DEBUG)
 
+class MonroeCliPlugin:
+    @classmethod
+    def register_args(cls, subparsers):
+        raise NotImplementedError("Cannot register an abstract plugin!")
 
 def create(args):
     '''
@@ -334,6 +343,10 @@ def handle_args(argv):
         metavar='<exp-id>',
         type=int,
         help='ID of the experiment you want to download')
+
+    plugins = load("monroe.plugins", subclasses=MonroeCliPlugin)
+    for plugin in plugins:
+        plugin.register_args(subparsers)
 
     if len(sys.argv) == 1:
         parser.print_help()
