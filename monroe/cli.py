@@ -10,8 +10,8 @@ from monroe.core import Scheduler, Experiment
 from OpenSSL.crypto import load_pkcs12, FILETYPE_PEM, FILETYPE_ASN1, dump_certificate, dump_privatekey
 import datetime
 import json
+import ast
 from Crypto.PublicKey import RSA
-
 # Paths for monroe certificates and keys
 
 mnr_dir = os.path.expanduser('~/.monroe/')
@@ -55,7 +55,12 @@ def create(args):
     if args.storage:
         exp.storage(args.storage * 1024 * 1024)
     if args.jsonstr:
-        exp.jsonstr(args.jsonstr)
+        try:
+            d_opt = make_dict(args.jsonstr)
+        except Exception as err:
+            print("Malformed options string: %s") % err
+        exp.jsonstr(d_opt)
+
     if args.countries:
         c = []
         if 'Norway' in args.countries:
@@ -98,6 +103,8 @@ def create(args):
         if 'Could not allocate' in a.message():
             sys.exit(1)
         expid = int(re.search(r'\d+', str(a)).group())
+        if args.jsonstr:
+            print("Additional options passed: " + str(d_opt))
         if args.ssh:
             print('Connecting to your experiment container:\n')
             item = scheduler.schedules(expid)[0]
@@ -114,6 +121,18 @@ def create(args):
     if args.availability:
         print(scheduler.get_availability(exp))
 
+def make_dict(lst):
+    d ={}
+    for item in lst:
+        pair = item.partition(":")
+        if '['in pair[2] and ']' in pair[2]:
+            d[pair[0]] = pair[2].strip('[]').split(',')
+        elif '{' in pair[2] and '}' in pair[2]:
+           l =pair[2].strip('{}').split(',')
+           d[pair[0]]= make_dict(l)
+        else:
+            d[pair[0]] = pair[2]
+    return d
 
 def date_t(value):
     '''Function which checks a given string can be converted to a date within accepted scheduler ranges'''
@@ -244,8 +263,8 @@ def handle_args(argv):
         help='Path to your ssh key for remoting into nodes')
     parser_exp.add_argument(
         '--jsonstr',
-        nargs='?',
-        help='Additional options string. It will automatically be converted to JSON.'
+        nargs='+',
+        help='Additional options string, formatted as key: value pairs.'
     )
     parser_exp.add_argument(
         '--countries',

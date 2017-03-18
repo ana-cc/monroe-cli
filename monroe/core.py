@@ -233,9 +233,12 @@ class Experiment:
         :returns: string
         '''
         if value == None:
-            return self._data['jsonstr']
+            return self._data['options']['jsonstr']
         elif self._data['status'] == 'draft':
-            self._data['jsonstr'] = value
+            if isinstance(value, dict): 
+                self._data['options']['jsonstr'] = value
+            else:
+                raise RuntimeError("Not a valid dict. JSON strings passed to the scheduler need to be python dictionaries")
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
 
@@ -317,7 +320,10 @@ class Experiment:
                 }
         if len(self._data['options']['nodes']) > 0:
             options['nodes'] = ', '.join([str(i) for i in self._data['options']['nodes']])
-
+        jinp =  self._data['options']['jsonstr']
+        if len(jinp.keys()) > 0:        
+            for item in jinp.keys():
+                    options[item] = jinp[item]
         postrequest['name'] = self._data['name']
         postrequest['nodecount'] = self._data['nodecount']
         postrequest['nodetypes'] = ','.join(ntype)
@@ -325,6 +331,7 @@ class Experiment:
         postrequest['script'] = self._data['script']
         postrequest['start'] = self._data['start']
         postrequest['stop'] = self._data['stop']
+        print (postrequest)
         return json.dumps(postrequest)
 
     def __repr__(self):
@@ -492,7 +499,6 @@ class Scheduler:
         data['nodetype'] = 'type:testing' if testing else 'type:deployed'
 
         # Initialise advanced options
-        data['jsonstr'] = None
         data['countries'] = []
         options['nodes'] = []
         options['traffic'] = 1048576
@@ -501,6 +507,7 @@ class Scheduler:
         options['storage'] = 134217728
         options['sshkey'] = None
         options['recurrence'] = False
+        options['jsonstr'] ={}
         options['period'] = None
         options['until'] = None
         data['options'] = options
