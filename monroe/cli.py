@@ -122,13 +122,14 @@ def create(args):
         print(scheduler.get_availability(exp))
 
 def make_dict(lst):
+    '''Function which parses a list of strings into a dict'''
     d ={}
     for item in lst:
         pair = item.partition(":")
-        if '['in pair[2] and ']' in pair[2]:
+        if pair[2].startswith('[') and ']' in pair[2]:
             d[pair[0]] = pair[2].strip('[]').split(',')
-        elif '{' in pair[2] and '}' in pair[2]:
-           l =pair[2].strip('{}').split(',')
+        elif pair[2].startswith('{') and '}' in pair[2]:
+           l =pair[2].strip('{}').split(', ')
            d[pair[0]]= make_dict(l)
         else:
             d[pair[0]] = pair[2]
@@ -264,7 +265,7 @@ def handle_args(argv):
     parser_exp.add_argument(
         '--jsonstr',
         nargs='+',
-        help='Additional options string, formatted as key: value pairs.'
+        help='Additional options string, formatted as key:value pairs. Example: <apple:sour orange:tasty banana:"[yellow,yummy]" vegetables:"{broccoli:green, tomato:[red,juicy]}">' 
     )
     parser_exp.add_argument(
         '--countries',

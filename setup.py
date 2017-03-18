@@ -9,8 +9,8 @@ setup(
     name='monroe-lib',
     version=VERSION,
 
-    description='Python library for interacting with the MONROE scheduler',
-    long_description='Library for interacting with the MONROE scheduler',
+    description='MONROE scheduler Python library',
+    long_description='Python library for interacting with the MONROE scheduler',
 
     url='https://github.com/ana-cc/monroe-lib',
 
@@ -31,7 +31,7 @@ setup(
     ],
 
     packages=find_packages(exclude=['docs', 'tests']),
-
+    install_requires = ['pyOpenSSL', 'pycryptodome', 'haikunator'],
     entry_points={
     'console_scripts': [
         'monroe=monroe.cli:main',

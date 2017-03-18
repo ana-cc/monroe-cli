@@ -331,7 +331,6 @@ class Experiment:
         postrequest['script'] = self._data['script']
         postrequest['start'] = self._data['start']
         postrequest['stop'] = self._data['stop']
-        print (postrequest)
         return json.dumps(postrequest)
 
     def __repr__(self):
