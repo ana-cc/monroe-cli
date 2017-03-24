@@ -352,14 +352,14 @@ def handle_args(argv):
     if args.func != setup:
         if not os.path.isfile(mnr_key) or not os.path.isfile(mnr_crt):
             raise SystemExit(
-                "Please run monroe-cli setup --cert <certificate> to be able to submit experiments and retrieve results."
+                "Please run monroe setup --cert <certificate> to be able to submit experiments and retrieve results."
             )
         try:
             scheduler = Scheduler(mnr_crt, mnr_key)
             auth = scheduler.auth()
         except:
             raise SystemExit(
-                "Something went wrong.\nTry running monroe-cli setup --cert <certificate>\nto refresh your certificate and check the scheduler is running\nand can be accessed from your local network."
+                "Something went wrong.\nTry running monroe setup --cert <certificate>\nto refresh your certificate and check the scheduler is running\nand can be accessed from your local network."
             )
         args.func(args)
     else:
