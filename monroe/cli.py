@@ -89,22 +89,18 @@ def create(args):
         try:
             period = int(args.recurrence[0])
         except:
-            sys.exit(1)
-            print('Argument must be an integer')
+            raise SystemExit('Argument must be an integer')
         until = args.recurrence[1]
         if period < 3600:
-            print(
+            raise SystemExit(
                 "The minimum period for recurring experiments must be at least 3600"
             )
-            sys.exit(1)
         if (period % 3600) != 0:
-            print("Recurrence period must be a multiple of 3600")
-            sys.exit(1)
+            raise SystemExit("Recurrence period must be a multiple of 3600")
         try:
             date_t(until)
         except Exception as err:
-            print(err)
-            sys.exit(1)
+            raise SystemExit(err)
 
     if args.submit:
         a = scheduler.submit_experiment(exp)
@@ -153,8 +149,7 @@ def date_t(value):
         msg = "Incorrect date/time format!"
         raise argparse.ArgumentTypeError(msg)
     if t < time.time() or t > time.time() + 2678400:
-        print("Date/time outside the acceptable ranges")
-        sys.exit(1)
+        raise SystemExit("Date/time outside the acceptable ranges")
     return value
 
 
@@ -356,18 +351,16 @@ def handle_args(argv):
     # Validation of cert and key required before executing commands on the scheduler
     if args.func != setup:
         if not os.path.isfile(mnr_key) or not os.path.isfile(mnr_crt):
-            print(
-                "Please run monroe-cli setup <certificate> to be able to submit experiments and retrieve results."
+            raise SystemExit(
+                "Please run monroe-cli setup --cert <certificate> to be able to submit experiments and retrieve results."
             )
-            sys.exit(1)
         try:
             scheduler = Scheduler(mnr_crt, mnr_key)
             auth = scheduler.auth()
         except:
-            print(
-                "Something went wrong.\nTry running monroe-cli --setup <certificate>\nto refresh your certificate and check the scheduler is running\nand can be accessed from your local network."
+            raise SystemExit(
+                "Something went wrong.\nTry running monroe-cli setup --cert <certificate>\nto refresh your certificate and check the scheduler is running\nand can be accessed from your local network."
             )
-            sys.exit(1)
         args.func(args)
     else:
         args.func(args)
@@ -397,12 +390,10 @@ def setup(args):
                 with open(mnr_crt, 'wb') as f:
                     f.write(ct)
             except Exception as err:
-                print('ERROR: %s' % str(err))
-                sys.exit(1)
+                raise SystemExit('ERROR: %s' % str(err))
             print("Your certificate files were stored in ~/.monroe")
         else:
-            print("File not found!")
-            sys.exit(1)
+            raise SystemExit("File not found!")
     else:
         print("Please specify a p12 or pkcs12 certificate to use.")
 
@@ -418,8 +409,7 @@ def delete(args):
             a = scheduler.delete_experiment(args.exp)
             print(a['message'])
         except Exception as err:
-            print("ERROR: %s" % str(err))
-            sys.exit(1)
+            raise SystemExit("ERROR: %s" % str(err))
     else:
         print("Please specify the ID of the experiment you want to delete.")
 
