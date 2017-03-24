@@ -212,7 +212,7 @@ def handle_args(argv):
     'quota', 'setup', 'delete' and 'results'
     '''
     parser = argparse.ArgumentParser(
-        prog='monroe-cli', description='Monroe Cli')
+        prog='monroe', description='Monroe Cli')
     parser.set_defaults(func=None)
     subparsers = parser.add_subparsers(
         title="Experiment",
