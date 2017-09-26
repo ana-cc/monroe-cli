@@ -44,7 +44,7 @@ def create(args):
         args.script,
         args.nodecount,
         args.duration,
-        testing=args.testing)
+        testing=not(args.deployed))
     if args.ssh:
         if os.path.isfile(sshkey) and os.path.isfile(sshkey_priv):
             with open(sshkey, 'r') as f:
@@ -101,7 +101,10 @@ def create(args):
             date_t(until)
         except Exception as err:
             raise SystemExit(err)
-
+    if args.maxnodes:
+        maxnodes= scheduler.get_availability(exp).max_nodecount()
+        print(maxnodes)
+        exp.nodecount(maxnodes)
     if args.submit:
         a = scheduler.submit_experiment(exp)
         print(a.message())
@@ -225,9 +228,9 @@ def handle_args(argv):
     parser_exp.add_argument(
         '--name', type=str, help='Sets the experiment name')
     parser_exp.add_argument(
-        '--testing',
+        '--deployed',
         action='store_true',
-        help='Sets the nodetype to Testing, default is Deployed')
+        help='Sets the nodetype to Deployed, default is Testing')
     parser_exp.add_argument(
         '--script',
         default='monroe/base',
@@ -237,6 +240,10 @@ def handle_args(argv):
         type=int,
         default=1,
         help='Sets the number of nodes to deploy on, default is 1')
+    parser_exp.add_argument(
+        '--maxnodes',
+        action='store_true',
+        help='Sets the experiment for the maximum number of nodes')
     parser_exp.add_argument(
         '--duration',
         type=int,

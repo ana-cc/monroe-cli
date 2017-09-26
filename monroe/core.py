@@ -50,7 +50,7 @@ class Experiment:
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
 
-    def nodetype(self, testing=False):
+    def nodetype(self, testing=True):
         '''Sets the nodetype for an experiment to testing if ``value`` is True, and deployed if ``value`` is False. Otherwise returns the nodetype for the experiment.
 
         :param testing: False for deployed nodes and True for testing nodes
@@ -480,7 +480,7 @@ class Scheduler:
                        script="monroe/base",
                        nodecount=1,
                        duration=300,
-                       testing=False):
+                       testing=True):
         '''Returns an ``Experiment`` object with default options and ``draft`` status.'''
         data = {}
         options = {}
