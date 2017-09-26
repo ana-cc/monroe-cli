@@ -105,7 +105,9 @@ def create(args):
         maxnodes= scheduler.get_availability(exp).max_nodecount()
         print(maxnodes)
         exp.nodecount(maxnodes)
-    if args.submit:
+    if args.availability:
+        print(scheduler.get_availability(exp))
+    else:
         a = scheduler.submit_experiment(exp)
         print(a.message())
         if 'Could not allocate' in a.message():
@@ -126,8 +128,6 @@ def create(args):
                 ])
                 os.system(cmd)
 
-    if args.availability:
-        print(scheduler.get_availability(exp))
 
 def make_dict(lst):
     '''Function which parses a list of strings into a dict'''
@@ -292,8 +292,6 @@ def handle_args(argv):
         nargs=2,
         metavar='<period, finish time>',
         help='Defines recurrence parameters')
-    parser_exp.add_argument(
-        '--submit', action='store_true', help='Submit the experiment')
     #parser_exp.add_argument('--save', action='store_true', help = 'Sets the experiment name')
     parser_exp.add_argument(
         '--availability',
