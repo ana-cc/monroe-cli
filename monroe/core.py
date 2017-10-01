@@ -79,7 +79,17 @@ class Experiment:
               self._data['model'] = 'model:apu2d4'
            else:
               self._data['model'] = 'model:apu1d4'
-           
+    def ifcount(self, value=None):
+        ''''Sets the interface count required of the nodes
+        :param new : Integer between 1 and 3
+        :returns: int -- Interface count needed for the nodes, ranging from 1 to 3'
+        ''' 
+        if value == None:
+           return self._data['ifcount']
+        elif self._data['status'] == 'draft':
+           if value in [1, 2, 3]:
+              self._data['ifcount'] = value
+        
     def id(self):
         '''Returns the id of an experiment, if it exists. Experiment ids are assigned at experiment submission
 
@@ -312,11 +322,14 @@ class Experiment:
         ntype.append(self._data['nodetype'])
         if self._data['model']:
            ntype.append(self._data['model'])
-       
+               
         options['traffic'] = self._data['options']['traffic']
         options['resultsQuota'] = self._data['options']['resultsQuota']
         options['shared'] = self._data['options']['shared']
         options['storage'] = self._data['options']['storage']
+        if self._data['ifcount'] == 3:
+           if (self._data['nodecount']%2) == 1:
+               raise RuntimeError("Error. Number of nodes must be even for dual-node experiments!")
         if self._data['options']['recurrence'] is True:
             options['recurrence'] = 'simple'
             options['period'] = self._data['options']['period']
@@ -338,6 +351,7 @@ class Experiment:
         if len(jinp.keys()) > 0:        
             for item in jinp.keys():
                     options[item] = jinp[item]
+        postrequest['interfaceCount'] = self._data['ifcount']
         postrequest['name'] = self._data['name']
         postrequest['nodecount'] = self._data['nodecount']
         postrequest['nodetypes'] = ','.join(ntype)
@@ -505,12 +519,13 @@ class Scheduler:
         # Initialise basic options
         data['name'] = name if name is not None else Haikunator().haikunate()
         data['script'] = script
+        data['ifcount'] = None
         data['nodecount'] = nodecount
         data['start'] = 0
         data['stop'] = int(duration)
         data['duration'] = int(duration)
         data['nodetype'] = 'type:testing' if testing else 'type:deployed'
-        data['model'] = ''
+        data['model'] = None
 
         # Initialise advanced options
         data['countries'] = []

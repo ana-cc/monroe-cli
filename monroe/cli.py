@@ -74,6 +74,13 @@ def create(args):
             print("Malformed options string: %s") % err
         exp.jsonstr(d_opt)
 
+    if args.ifcount:
+        if args.ifcount in [1, 2, 3]:
+            exp.ifcount(args.ifcount)
+        else:
+            print("Inteface count invalid, number must be an integer between 1 and 3.")
+            sys.exit(1)
+    
     if args.countries:
         c = []
         if 'Norway' in args.countries:
@@ -117,29 +124,36 @@ def create(args):
         maxnodes= scheduler.get_availability(exp).max_nodecount()
         print(maxnodes)
         exp.nodecount(maxnodes)
+
     if args.availability:
-        print(exp.prepareJson())
-        print(scheduler.get_availability(exp))
+        #print(exp.prepareJson())
+        try:
+            print(scheduler.get_availability(exp))
+        except Exception as err:
+            print(err)
     else:
-        a = scheduler.submit_experiment(exp)
-        print(a.message())
-        if 'Could not allocate' in a.message():
-            sys.exit(1)
-        expid = int(re.search(r'\d+', str(a)).group())
-        if args.jsonstr:
-            print("Additional options passed: " + str(d_opt))
-        if args.ssh:
-            print('Connecting to your experiment container:\n')
-            item = scheduler.schedules(expid)[0]
-            port = 30000 + item.nodeid()
-            con = check_server('193.10.227.35', port)
-            if con:
-                cmd = " ".join([
-                    'ssh', '-o', 'StrictHostKeyChecking=no', '-o',
-                    'UserKnownHostsFile=/dev/null', '-i', sshkey_priv, '-p',
-                    str(port), 'root@tunnel.monroe-system.eu'
-                ])
-                os.system(cmd)
+        try:
+            a = scheduler.submit_experiment(exp)
+            print(a.message())
+            if 'Could not allocate' in a.message():
+                sys.exit(1)
+            expid = int(re.search(r'\d+', str(a)).group())
+            if args.jsonstr:
+                print("Additional options passed: " + str(d_opt))
+            if args.ssh:
+                print('Connecting to your experiment container:\n')
+                item = scheduler.schedules(expid)[0]
+                port = 30000 + item.nodeid()
+                con = check_server('193.10.227.35', port)
+                if con:
+                    cmd = " ".join([
+                        'ssh', '-o', 'StrictHostKeyChecking=no', '-o',
+                        'UserKnownHostsFile=/dev/null', '-i', sshkey_priv, '-p',
+                        str(port), 'root@tunnel.monroe-system.eu'
+                    ])
+                    os.system(cmd)
+        except Exception as err:
+           raise SystemExit(err)
 
 
 def make_dict(lst):
@@ -253,6 +267,10 @@ def handle_args(argv):
         type=int,
         default=1,
         help='Sets the number of nodes to deploy on, default is 1')
+    parser_exp.add_argument(
+        '--ifcount',
+        type=int,
+        help='Sets the interface count of the nodes to deploy on')
     parser_exp.add_argument(
         '--maxnodes',
         action='store_true',
