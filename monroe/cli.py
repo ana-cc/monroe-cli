@@ -344,6 +344,7 @@ def handle_args(argv):
     parser_delete.set_defaults(func=delete)
     parser_delete.add_argument(
         'exp',
+        nargs='+',
         metavar='<exp-id>',
         type=int,
         help='ID of the experiment you want to delete')
@@ -353,6 +354,7 @@ def handle_args(argv):
     parser_results.set_defaults(func=results)
     parser_results.add_argument(
         'exp',
+        nargs='+',
         metavar='<exp-id>',
         type=int,
         help='ID of the experiment you want to download')
@@ -421,15 +423,13 @@ def delete(args):
     Function that deletes experiments based on the 
     experiment id passed to the parser
     '''
-    if args.exp:
-        scheduler = Scheduler(mnr_crt, mnr_key)
-        try:
-            a = scheduler.delete_experiment(args.exp)
+    scheduler = Scheduler(mnr_crt, mnr_key)
+    try:
+        for i in args.exp:
+            a = scheduler.delete_experiment(i)
             print(a['message'])
-        except Exception as err:
-            raise SystemExit("ERROR: %s" % str(err))
-    else:
-        print("Please specify the ID of the experiment you want to delete.")
+    except Exception as err:
+        raise SystemExit("ERROR: %s" % str(err))
 
 
 def results(args):
@@ -437,11 +437,9 @@ def results(args):
     Function that downloads experiment results based on the 
     experiment id passed to the parser
     '''
-    if args.exp:
-        scheduler = Scheduler(mnr_crt, mnr_key)
-        scheduler.result(args.exp)
-    else:
-        print("Please specify an experiment ID to get results for.")
+    scheduler = Scheduler(mnr_crt, mnr_key)
+    for i in args.exp:
+        scheduler.result(i)
 
 
 def whoami(args):
