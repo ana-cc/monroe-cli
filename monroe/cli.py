@@ -237,7 +237,7 @@ def handle_args(argv):
         action='store_true',
         help='Sets the nodetype to Deployed, default is Testing')
     parser_exp.add_argument(
-        '--script',
+        'script',
         default='monroe/base',
         help='Sets the Docker image to deploy, default is monroe/base')
     parser_exp.add_argument(
