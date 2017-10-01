@@ -352,7 +352,7 @@ def handle_args(argv):
         'results', help='Downloads the results for an experiment')
     parser_results.set_defaults(func=results)
     parser_results.add_argument(
-        '--exp',
+        'exp',
         metavar='<exp-id>',
         type=int,
         help='ID of the experiment you want to download')
