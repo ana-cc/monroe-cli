@@ -303,7 +303,7 @@ class Experiment:
             c = 1
             ret = ""
             for item in self._data['countries']:
-                ret += "country:" + item
+                ret += "project:" + item
                 if c < l:
                     ret += "|"
                 c += 1

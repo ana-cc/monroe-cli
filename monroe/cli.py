@@ -77,13 +77,21 @@ def create(args):
     if args.countries:
         c = []
         if 'Norway' in args.countries:
-            c.append('no')
+            c.append('norway')
         if 'Sweden' in args.countries:
-            c.append('se')
+            c.append('sweden')
         if 'Italy' in args.countries:
-            c.append('it')
+            c.append('italy')
         if 'Spain' in args.countries:
-            c.append('es')
+            c.append('spain')
+        if 'NSB' in args.countries:
+            c.append('nsb')
+        if 'VTAB' in args.countries:
+            c.append('vtab')
+        if 'GTT' in args.countries:
+            c.append('gtt')
+        if 'WSYS' in args.countries:
+            c.append('wsys')
         exp.countries(c)
     if args.nodes:
        n = []
@@ -293,8 +301,8 @@ def handle_args(argv):
     )
     parser_exp.add_argument(
         '--countries',
-        nargs='?',
-        help='Countries: pick one or several from Norway, Sweden, Spain, Italy')
+        nargs='+',
+        help='Countries: pick one or several from Norway, Sweden, Spain, Italy, VTAB, GTT, NSB, WSYS')
     parser_exp.add_argument(
         '--nodes',
         nargs='+',
