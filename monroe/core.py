@@ -67,7 +67,19 @@ class Experiment:
 
         else:
             raise RuntimeError("Attempted to modify a non-draft experiment")
-
+    def model(self, new=True):
+        '''Sets the model of the apu board in a node; the new option points to apu2d4
+        :param new : False for old/apu1d nodes and True for new/apu2d nodes
+        :type new: boolean
+        :returns: string -- Model of node to deploy on, either model:apu2d4 or model:apu1d4''' 
+        if new == None:
+           return self._data['model']
+        elif self._data['status'] == 'draft':
+           if new == True:
+              self._data['model'] = 'model:apu2d4'
+           else:
+              self._data['model'] = 'model:apu1d4'
+           
     def id(self):
         '''Returns the id of an experiment, if it exists. Experiment ids are assigned at experiment submission
 
@@ -296,9 +308,11 @@ class Experiment:
                     ret += "|"
                 c += 1
             ntype.append(ret)
-
+        
         ntype.append(self._data['nodetype'])
-
+        if self._data['model']:
+           ntype.append(self._data['model'])
+       
         options['traffic'] = self._data['options']['traffic']
         options['resultsQuota'] = self._data['options']['resultsQuota']
         options['shared'] = self._data['options']['shared']
@@ -496,6 +510,7 @@ class Scheduler:
         data['stop'] = int(duration)
         data['duration'] = int(duration)
         data['nodetype'] = 'type:testing' if testing else 'type:deployed'
+        data['model'] = ''
 
         # Initialise advanced options
         data['countries'] = []
@@ -540,6 +555,7 @@ class Scheduler:
                      nodetype='type:testing',
                      countries=[],
                      nodes=[],
+                     model='',
                      start=0):
         '''Produces and submits HTTP query string for given nodecount, duration and nodetype and returns an AvailabilityReport based on the returned response.'''
         if len(countries) > 0:
@@ -552,6 +568,8 @@ class Scheduler:
                     ret += "|"
                 c += 1
             nodetype = ret +', '+ nodetype
+        if model:
+            nodetype = nodetype + ',' +model
         if len(nodes) > 0: 
             nodes = ','.join([str(i) for i in nodes])
             endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodes=%s&nodetypes=%s&start=%s" % (

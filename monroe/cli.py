@@ -63,6 +63,10 @@ def create(args):
         exp.shared(args.logfile * 1024 * 1024)
     if args.storage:
         exp.storage(args.storage * 1024 * 1024)
+    if args.old:
+        exp.model(new=False)
+    if args.new:
+        exp.model(new=True)
     if args.jsonstr:
         try:
             d_opt = make_dict(args.jsonstr)
@@ -106,6 +110,7 @@ def create(args):
         print(maxnodes)
         exp.nodecount(maxnodes)
     if args.availability:
+        print(exp.prepareJson())
         print(scheduler.get_availability(exp))
     else:
         a = scheduler.submit_experiment(exp)
@@ -273,6 +278,14 @@ def handle_args(argv):
         '--ssh',
         action='store_true',
         help='Path to your ssh key for remoting into nodes')
+    parser_exp.add_argument(
+        '--new',
+        action='store_true',
+        help='Schedules experiments only on new (apu1d4) nodes. The default is to use all nodes')
+    parser_exp.add_argument(
+        '--old',
+        action='store_true',
+        help='Schedules experiments only on old (apu1d4) nodes. The default is to use all nodes')
     parser_exp.add_argument(
         '--jsonstr',
         nargs='+',
