@@ -343,7 +343,7 @@ def handle_args(argv):
         'delete', help='Deletes an experiment')
     parser_delete.set_defaults(func=delete)
     parser_delete.add_argument(
-        '--exp',
+        'exp',
         metavar='<exp-id>',
         type=int,
         help='ID of the experiment you want to delete')
