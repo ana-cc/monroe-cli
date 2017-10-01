@@ -903,7 +903,10 @@ class Node:
 
        :returns: string
        '''
-        return self._data['site']
+        if 'site' in self._data.keys():
+            return self._data['site']
+        else:
+            return 'undefined'
 
     def status(self):
         '''Returns the node status.
