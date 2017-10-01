@@ -335,7 +335,7 @@ def handle_args(argv):
     )
     parser_setup.set_defaults(func=setup)
     parser_setup.add_argument(
-        '--cert',
+        'cert',
         metavar='<filename>',
         help='Location of the certificate file')
 
