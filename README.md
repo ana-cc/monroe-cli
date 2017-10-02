@@ -3,7 +3,7 @@
 The following will install the latest version of the cli:
 
 ```
-apt install git python3-setuptools build-essential libffi-dev libssl-dev python3-straight.plugin python3-cryptography
+apt install git python3-dev python3-setuptools build-essential libffi-dev libssl-dev python3-straight.plugin python3-cryptography
 git clone https://github.com/ana-cc/monroe-cli.git
 cd monroe-cli
 python3 setup.py develop
