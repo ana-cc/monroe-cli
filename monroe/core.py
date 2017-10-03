@@ -144,12 +144,15 @@ class Experiment:
         if value == None:
             return int(self._data['start'])
         elif self._data['status'] == 'draft':
-            try:
-                self._data['start'] = time.mktime(
-                    datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
-                    .timetuple())
-            except:
-                raise RuntimeError("String format as y-m-dTh:m:s")
+            if value == -1:
+                self._data['start'] = -1
+            else:
+                try:
+                    self._data['start'] = time.mktime(
+                        datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
+                        .timetuple())
+                except:
+                    raise RuntimeError("String format as y-m-dTh:m:s")
             self._data['stop'] = self._data['start'] + int(self._data[
                 'duration'])
         else:
@@ -330,6 +333,12 @@ class Experiment:
         if self._data['ifcount'] == 3:
            if (self._data['nodecount']%2) == 1:
                raise RuntimeError("Error. Number of nodes must be even for dual-node experiments!")
+
+
+        if self._data['options']['recurrence'] is True and self_data['start'] == -1:
+            raise RuntimeError(
+                "Error. Cannot deploy Low Priority Queue recurrent events!")
+
         if self._data['options']['recurrence'] is True:
             options['recurrence'] = 'simple'
             options['period'] = self._data['options']['period']
@@ -351,14 +360,19 @@ class Experiment:
         if len(jinp.keys()) > 0:        
             for item in jinp.keys():
                     options[item] = jinp[item]
-        postrequest['interfaceCount'] = self._data['ifcount']
+        if self._data['ifcount']:
+            postrequest['interfaceCount'] = self._data['ifcount']
         postrequest['name'] = self._data['name']
         postrequest['nodecount'] = self._data['nodecount']
         postrequest['nodetypes'] = ','.join(ntype)
         postrequest['options'] = json.dumps(options)
         postrequest['script'] = self._data['script']
         postrequest['start'] = self._data['start']
-        postrequest['stop'] = self._data['stop']
+        if postrequest['start'] != -1:
+            postrequest['stop'] = self._data['stop']
+        else:
+            postrequest['stop'] = self._data['duration']
+
         return json.dumps(postrequest)
 
     def __repr__(self):
