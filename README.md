@@ -3,7 +3,7 @@
 The following will install the latest version of the cli:
 
 ```
-apt install git, python3-setuptools, build-essentials libffi-dev libssl-dev python3-straight.plugin python3-cryptography
+apt install git python3-dev python3-setuptools build-essential libffi-dev libssl-dev python3-straight.plugin python3-cryptography
 git clone https://github.com/ana-cc/monroe-cli.git
 cd monroe-cli
 python3 setup.py develop
@@ -36,3 +36,9 @@ e.nodecount('20')
 s.submit_experiment(e)
 ```
 
+The following example creates a scheduler, and retrieves list of nodes in a particular country:
+
+```from monroe.core import *
+s = Scheduler("/home/user/.monroe/mnrCrt.pem", "/home/user/.monroe/mnrKey.pem")
+nodelist = [node.id() for node in s.nodes() if node.site() == 'spain']
+```
