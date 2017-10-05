@@ -101,9 +101,7 @@ def create(args):
             c.append('wsys')
         exp.countries(c)
     if args.nodes:
-       n = []
-       n.append(args.nodes)
-       exp.nodes(n)
+        exp.nodes(args.nodes)
     if args.recurrence:
         try:
             period = int(args.recurrence[0])
@@ -122,7 +120,7 @@ def create(args):
             raise SystemExit(err)
     if args.maxnodes:
         maxnodes= scheduler.get_availability(exp).max_nodecount()
-        print(maxnodes)
+        #print(maxnodes)
         exp.nodecount(maxnodes)
 
     if args.availability:

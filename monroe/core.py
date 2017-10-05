@@ -601,9 +601,9 @@ class Scheduler:
             nodetype = nodetype + ',' +model
         if len(nodes) > 0: 
             nodes = ','.join([str(i) for i in nodes])
-            endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodes=%s&nodetypes=%s&start=%s" % (
-                str(duration), str(nodecount),nodes, nodetype, start)
-        
+            endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodes=%s&nodetypes=&start=%s" % (
+                str(duration), str(nodecount),nodes, start)
+            print (endpoint) 
         else:         
             endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodetypes=%s&start=%s" % (
                 str(duration), str(nodecount), nodetype, start)
