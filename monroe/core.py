@@ -489,7 +489,9 @@ class Scheduler:
         endpoint = "/v1/users/%s/experiments" % res.id()
         obj = []
         exp = self.get(endpoint)
-        exp = exp[-50:]
+        if len(exp) > 50:
+            exp = exp[-50:]
+        
         return [Experiment(e) for e in exp]
 
     def schedules(self, experimentid):

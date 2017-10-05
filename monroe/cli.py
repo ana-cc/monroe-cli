@@ -488,6 +488,8 @@ def experiments(args):
     Function that prints with user experiments
     '''
     scheduler = Scheduler(mnr_crt, mnr_key)
+    if args.max > len(scheduler.experiments()):
+        args.max = len(scheduler.experiments())
     for i in scheduler.experiments()[-args.max:]:
         print(i)
 
