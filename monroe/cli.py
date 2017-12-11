@@ -199,12 +199,12 @@ def gen_ssh_mnr():
         f.write(key.publickey().exportKey(format='OpenSSH'))
         print("Public key written to ~/.monroe/mnr_rsa.pub.")
     with open(sshkey_priv, 'wb') as f:
+        os.chmod(sshkey_priv, 0o600)
         if secret != "":
             f.write(key.exportKey(passphrase=secret))
         else:
             f.write(key.exportKey())
         print("Private key written to ~/.monroe/mnr_rsa.")
-    os.chmod(sshkey_priv, 0o600)
     print("These are the default keys used by the cli.")
 
 
@@ -437,6 +437,7 @@ def setup(args):
                 if not os.path.exists(mnr_dir):
                     os.makedirs(mnr_dir)
                 with open(mnr_key, 'wb') as f:
+                    os.chmod(mnr_key, 0o600)
                     f.write(pk)
                 with open(mnr_crt, 'wb') as f:
                     f.write(ct)
