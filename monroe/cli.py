@@ -102,6 +102,7 @@ def create(args):
         exp.countries(c)
     if args.nodes:
         exp.nodes(args.nodes)
+        exp.nodecount(len(args.nodes))
     if args.recurrence:
         try:
             period = int(arg.recurrence[0])
