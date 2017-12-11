@@ -104,7 +104,7 @@ def create(args):
         exp.nodes(args.nodes)
     if args.recurrence:
         try:
-            period = int(args.recurrence[0])
+            period = int(arg.recurrence[0])
         except:
             raise SystemExit('Argument must be an integer')
         until = args.recurrence[1]
@@ -118,11 +118,13 @@ def create(args):
             date_t(until)
         except Exception as err:
             raise SystemExit(err)
+        exp.recurrence(period, date_t(until))
     if args.maxnodes:
         maxnodes= scheduler.get_availability(exp).max_nodecount()
         #print(maxnodes)
         exp.nodecount(maxnodes)
-
+    if args.start:
+        exp.start(args.start)
     if args.availability:
         #print(exp.prepareJson())
         try:
@@ -178,7 +180,7 @@ def date_t(value):
         raise argparse.ArgumentTypeError(msg)
     if t < time.time() or t > time.time() + 2678400:
         raise SystemExit("Date/time outside the acceptable ranges")
-    return value
+    return t
 
 
 def gen_ssh_mnr():

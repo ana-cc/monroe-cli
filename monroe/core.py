@@ -137,7 +137,7 @@ class Experiment:
     def start(self, value=None):
         '''Sets the start date/time of an experiment to ``value``, otherwise returns the start date/time of an experiment.
 
-        :param value: Start date and time in format ``%Y-%m-%dT%H:%M:%S``
+        :param value: Start time as an UNIX timestamp`
         :type value: string
         :returns: int -- UNIX timestamp of the experiment start date or 0 if the experiment is scheduled to start as soon as possible
         '''
@@ -148,11 +148,9 @@ class Experiment:
                 self._data['start'] = -1
             else:
                 try:
-                    self._data['start'] = time.mktime(
-                        datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%S")
-                        .timetuple())
+                    self._data['start'] = value
                 except:
-                    raise RuntimeError("String format as y-m-dTh:m:s")
+                    raise RuntimeError("Value was not a UNIX timestamp")
             self._data['stop'] = self._data['start'] + int(self._data[
                 'duration'])
         else:
@@ -335,7 +333,7 @@ class Experiment:
                raise RuntimeError("Error. Number of nodes must be even for dual-node experiments!")
 
 
-        if self._data['options']['recurrence'] is True and self_data['start'] == -1:
+        if self._data['options']['recurrence'] is True and self._data['start'] == -1:
             raise RuntimeError(
                 "Error. Cannot deploy Low Priority Queue recurrent events!")
 
@@ -373,6 +371,7 @@ class Experiment:
         else:
             postrequest['stop'] = self._data['duration']
 
+        #print(postrequest)
         return json.dumps(postrequest)
 
     def __repr__(self):
@@ -605,7 +604,6 @@ class Scheduler:
             nodes = ','.join([str(i) for i in nodes])
             endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodes=%s&nodetypes=&start=%s" % (
                 str(duration), str(nodecount),nodes, start)
-            print (endpoint) 
         else:         
             endpoint = "/v1/schedules/find?duration=%s&nodecount=%s&nodetypes=%s&start=%s" % (
                 str(duration), str(nodecount), nodetype, start)
