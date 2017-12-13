@@ -69,7 +69,7 @@ def create(args):
         exp.model(new=True)
     if args.jsonstr:
         try:
-            d_opt = make_dict(args.jsonstr)
+            d_opt = json.loads(args.jsonstr[0])
         except Exception as err:
             print("Malformed options string: %s") % err
         exp.jsonstr(d_opt)
@@ -155,21 +155,6 @@ def create(args):
                     os.system(cmd)
         except Exception as err:
            raise SystemExit(err)
-
-
-def make_dict(lst):
-    '''Function which parses a list of strings into a dict'''
-    d ={}
-    for item in lst:
-        pair = item.partition(":")
-        if pair[2].startswith('[') and ']' in pair[2]:
-            d[pair[0]] = pair[2].strip('[]').split(',')
-        elif pair[2].startswith('{') and '}' in pair[2]:
-           l =pair[2].strip('{}').split(', ')
-           d[pair[0]]= make_dict(l)
-        else:
-            d[pair[0]] = pair[2]
-    return d
 
 def date_t(value):
     '''Function which checks a given string can be converted to a date within accepted scheduler ranges'''
@@ -316,7 +301,7 @@ def handle_args(argv):
     parser_exp.add_argument(
         '--jsonstr',
         nargs='+',
-        help='Additional options string, formatted as key:value pairs. Example: <apple:sour orange:tasty banana:"[yellow,yummy]" vegetables:"{broccoli:green, tomato:[red,juicy]}">' 
+        help='Additional options string, formatted as json. Example: "{\\\'apple\\\':\\\'sour\\\', \\\'orange\\\':\\\'tasty\\\', \\\'banana\\\':[\'yellow\\\',\\\'yummy\\\']}". Note that quotes must be escaped on the command line.' 
     )
     parser_exp.add_argument(
         '--countries',
