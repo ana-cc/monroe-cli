@@ -31,7 +31,7 @@ setup(
     ],
 
     packages=find_packages(exclude=['docs', 'tests']),
-    install_requires = ['pyOpenSSL', 'pycryptodome', 'haikunator'],
+    install_requires = ['pyOpenSSL', 'pycryptodome', 'haikunator', 'requests'],
     entry_points={
     'console_scripts': [
         'monroe=monroe.cli:main',

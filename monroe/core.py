@@ -3,6 +3,7 @@ import datetime
 import json
 import subprocess
 from collections import namedtuple
+import requests
 
 try:
     from haikunator import Haikunator
@@ -370,8 +371,7 @@ class Experiment:
             postrequest['stop'] = self._data['stop']
         else:
             postrequest['stop'] = self._data['duration']
-
-        #print(postrequest)
+        # print(postrequest)
         return json.dumps(postrequest)
 
     def __repr__(self):
@@ -404,14 +404,9 @@ class Scheduler:
         :returns: string -- The response of the request
         '''
         url = self.endp + endpoint
-        cmd = [
-            'wget','--content-on-error', '--certificate', self.cert, '--private-key', self.key, url,
-            '-O', '-'
-        ]
-        response = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        r = requests.get(url, cert=(self.cert, self.key))
 
-        return json.loads(response.communicate()[0].decode())
+        return json.loads(r.content.decode())
 
     def post(self, endpoint, postrequest):
         '''Function which performs an HTTP POST request against the target backend.
@@ -421,14 +416,9 @@ class Scheduler:
         :returns: string -- The response of the request.
         '''
         url = self.endp + endpoint
-        cmd = [
-            'wget', '--content-on-error', '--certificate', self.cert,
-            '--private-key', self.key, '--post-data=' + postrequest,
-            '--header=Content-Type:application/json', url, '-O', '-'
-        ]
-        response = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return response.communicate()[0].decode()
+        r = requests.post(url, cert=(self.cert, self.key), data=postrequest)
+        a = r.content.decode()
+        return json.loads(r.content.decode())
 
     def download(self, endpoint, prefix):
         '''Function which downloads files from a given endpoint.
@@ -455,14 +445,9 @@ class Scheduler:
         :returns: string -- The response of the request.
         '''
         url = self.endp + endpoint
-        cmd = [
-            'wget', '--method=DELETE', '--certificate', self.cert,
-            '--private-key', self.key, url, '-O', '-'
-        ]
-        response = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        r = requests.delete(url, cert=(self.cert, self.key))
         try:
-            return json.loads(response.communicate()[0].decode())
+            return json.loads(r.content.decode())
         except:
             raise RuntimeError("Could not perform action.")
 
@@ -514,7 +499,7 @@ class Scheduler:
         req = monroeExperiment.prepareJson()
         a = self.post(endpoint, req)
         try:
-            return SubmissionReport(json.loads(a.split("--")[0]))
+            return SubmissionReport(a)
         except:
             return "Something went wrong. Check the experiment availability."
 
