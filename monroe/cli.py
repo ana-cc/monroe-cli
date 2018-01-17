@@ -10,8 +10,6 @@ import socket
 import datetime
 import json
 
-from straight.plugin import load
-
 from OpenSSL.crypto import load_pkcs12, FILETYPE_PEM, FILETYPE_ASN1, dump_certificate, dump_privatekey
 from Crypto.PublicKey import RSA
 
@@ -377,10 +375,13 @@ def handle_args(argv):
         metavar='<exp-id>',
         type=int,
         help='ID of the experiment you want to download')
-
-    plugins = load("monroe.plugins", subclasses=MonroeCliPlugin)
-    for plugin in plugins:
-        plugin.register_args(subparsers)
+    try:
+        from straight.plugin import load
+        plugins = load("monroe.plugins", subclasses=MonroeCliPlugin)
+        for plugin in plugins:
+            plugin.register_args(subparsers)
+    except ImportError:
+        pass
 
     if len(sys.argv) == 1:
         parser.print_help()
