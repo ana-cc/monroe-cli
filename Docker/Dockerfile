@@ -1,19 +1,44 @@
-FROM debian:stretch
+FROM monroe/base
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y ssh wget git python3-dev python3-setuptools build-essential libffi-dev libssl- dev python3-straight.plugin python3-cryptography ca-certificates && apt-get clean 
+MAINTAINER jonas.karlsson@kau.se
 
-RUN mkdir /root/.monroe/
-RUN mkdir /root/results/
-RUN git clone https://github.com/ana-cc/monroe-cli
-COPY files/* /root/.monroe/
+#APT OPTS
+ENV APT_OPTS -y --allow-downgrades --allow-remove-essential --allow-change-held-packages --no-install-recommends --no-install-suggests --allow-unauthenticated
 
-RUN ssh-keygen -t rsa -P "" -f /root/.monroe/mnr_rsa
+# Add a volume to store certificates
+VOLUME /root/.monroe
 
-RUN openssl pkcs12 -in /root/.monroe/cert.p12 -out /root/.monroe/mnrCrt.pem -clcerts -nokeys -passin pass:yourpassword
-RUN openssl pkcs12 -in /root/.monroe/cert.p12 -out /root/.monroe/mnrKey.pem -nocerts -nodes -passin pass:yourpassword
+# We do not add a volume for the results as one
+# most likely wants to bind mounted to some host directory
+#VOLUME /results
 
-WORKDIR monroe-cli
-RUN python3 setup.py develop
-WORKDIR /root/results
-ENTRYPOINT ["/usr/local/bin/monroe"]
-~
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update \
+    && apt-get install ${APT_OPTS} \
+    git \
+    python3-dev \
+    python3-setuptools \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    python3-straight.plugin \
+    python3-cryptography \
+    # Fix missing packages
+    && apt-get update ${APT_OPTS} --fix-missing \
+    #Configure and build monroe-cli
+    && git clone https://github.com/MONROE-PROJECT/monroe-cli.git && cd monroe-cli \
+    && python3 setup.py develop && cd / \
+    # Cleanup
+    && apt-get purge  ${APT_OPTS} \
+    python3-dev \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    git \
+    && apt-get clean ${APT_OPTS} \
+    && apt-get autoremove ${APT_OPTS} \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc /usr/share/man /usr/share/locale /var/cache/debconf/*-old dumb-init.deb
+
+WORKDIR /results/
+
+ENTRYPOINT ["dumb-init", "--", "/usr/local/bin/monroe"]
