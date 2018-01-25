@@ -560,7 +560,7 @@ class Scheduler:
 
     def delete_experiment(self, experimentid):
         '''Requests a deletion for a given experiment ID.'''
-        endpoint = "/v1/experiments/%s/schedules" % str(experimentid)
+        endpoint = "/v1/experiments/%s" % str(experimentid)
         res = self.delete(endpoint)
         return res
 
