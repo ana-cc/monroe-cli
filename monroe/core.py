@@ -392,6 +392,7 @@ class Scheduler:
         self.cert = cert
         self.key = key
         self.endp = "https://scheduler.monroe-system.eu"
+        self.endp_download = "https://www.monroe-system.eu"
 
     # using wget as it's compiled against GNU TLS; anything using OpenSSL won't work due to MD5 hashes
     # to be changed once fed4fire updates the experimenter certificates  
@@ -437,7 +438,7 @@ class Scheduler:
         :type endpoint: string
         :returns: string -- The response of the request.
         '''
-        url = self.endp + endpoint
+        url = self.endp_download + endpoint
         cmd = [
             'wget', '-r', '-nH', '--cut-dirs=1', '--no-parent', '-P',
             str(prefix), '--certificate', self.cert, '--private-key', self.key,
