@@ -14,7 +14,7 @@ setup(
 
     url='https://github.com/ana-cc/monroe-lib',
 
-    author='Ana Custura',
+    author='ana-cc ',
     author_email='ana@netstat.org.uk',
 
     license='BSD 2-clause',
